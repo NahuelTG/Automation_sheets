@@ -7,13 +7,11 @@ function onEdit(event) {
       return;
     }
 
-    var libroActual = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetActual = libroActual.getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
-
-    var libroOtro = SpreadsheetApp.openByUrl(
+    var libroCbba =
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
+    var plazosPagosCbba = SpreadsheetApp.openByUrl(
       "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
-    );
-    var sheetOtro = libroOtro.getSheetByName("TESISTAS");
+    ).getSheetByName("TESISTAS");
 
     // Listas de abreviaturas por categorías
     var categoriaA = [
@@ -72,79 +70,39 @@ function onEdit(event) {
       "industrial",
     ];
 
-    var codigo = sheetActual.getRange("B" + filaEditada).getValue();
-    var nombreContrato = sheetActual.getRange("D" + filaEditada).getValue();
-    var concepto = sheetActual
-      .getRange("E" + filaEditada)
-      .getValue()
-      .toLowerCase();
+    var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
+    var concepto = libroCbba.getRange("E" + filaEditada).getValue();
+    var codigo = libroCbba.getRange("B" + filaEditada).getValue();
+    var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
+    var nombreContrato =
+      concepto.split(",").length > 1
+        ? partesConcepto[1].trim().toUpperCase()
+        : "";
 
     if (codigo && codigo.match(/^SPACBBOL \d+$/)) {
-      var datosOtro = sheetOtro
-        .getRange("A3:A" + sheetOtro.getLastRow())
+      var datosOtro = plazosPagosCbba
+        .getRange("A3:A" + plazosPagosCbba.getLastRow())
         .getValues();
       var encontrado = false;
 
       for (var j = 0; j < datosOtro.length; j++) {
         if (datosOtro[j][0] == codigo) {
           encontrado = true;
-          var partesConcepto = concepto.split(",");
-          var nombreContratoTrimmed =
-            partesConcepto.length > 1
-              ? partesConcepto[1].trim().toUpperCase()
-              : "";
-
-          sheetOtro.getRange("B" + (j + 3)).setValue(nombreContratoTrimmed);
-          sheetOtro
-            .getRange("C" + (j + 3))
-            .setValue(nombreContrato.toUpperCase()); // Convertir a mayúsculas
+          plazosPagosCbba.getRange("B" + (j + 3)).setValue(nombreContrato);
+          plazosPagosCbba.getRange("C" + (j + 3)).setValue(nombreCliente);
 
           if (concepto.includes("1ra cuota")) {
-            var cuotas = determinarCuotas(concepto, categoriaA, categoriaB);
-            sheetOtro.getRange("F" + (j + 3)).setValue("PRIMERA CUOTA");
-            sheetOtro.getRange("G" + (j + 3)).setValue(cuotas.primera);
-            sheetOtro.getRange("H" + (j + 3)).setValue("SEGUNDA CUOTA");
-            sheetOtro.getRange("I" + (j + 3)).setValue(cuotas.segunda);
-            sheetOtro.getRange("J" + (j + 3)).setValue("ÚLTIMA CUOTA");
-            sheetOtro.getRange("K" + (j + 3)).setValue(cuotas.ultima);
+            plazosPagosCbba.getRange("F" + (j + 3)).setValue("PRIMERA CUOTA");
+            plazosPagosCbba.getRange("G" + (j + 3)).setValue(tipoCuota.primera);
+            plazosPagosCbba.getRange("H" + (j + 3)).setValue("SEGUNDA CUOTA");
+            plazosPagosCbba.getRange("I" + (j + 3)).setValue(tipoCuota.segunda);
+            plazosPagosCbba.getRange("J" + (j + 3)).setValue("ÚLTIMA CUOTA");
+            plazosPagosCbba.getRange("K" + (j + 3)).setValue(tipoCuota.ultima);
           }
 
-          verificarPago(j + 3, sheetOtro);
+          verificarPago(j + 3, plazosPagosCbba);
           break;
         }
-      }
-
-      if (!encontrado) {
-        var ultimaFilaOtro = sheetOtro.getLastRow() + 1;
-
-        var partesConcepto = concepto.split(",");
-        var nombreContratoTrimmed =
-          partesConcepto.length > 1
-            ? partesConcepto[1].trim().toUpperCase()
-            : "";
-
-        sheetOtro
-          .getRange("A" + ultimaFilaOtro)
-          .setValue(codigo)
-          .setFontWeight("bold");
-        sheetOtro
-          .getRange("B" + ultimaFilaOtro)
-          .setValue(nombreContratoTrimmed);
-        sheetOtro
-          .getRange("C" + ultimaFilaOtro)
-          .setValue(nombreContrato.toUpperCase()); // Convertir a mayúsculas
-
-        if (concepto.includes("1ra cuota")) {
-          var cuotas = determinarCuotas(concepto, categoriaA, categoriaB);
-          sheetOtro.getRange("F" + ultimaFilaOtro).setValue("PRIMERA CUOTA");
-          sheetOtro.getRange("G" + ultimaFilaOtro).setValue(cuotas.primera);
-          sheetOtro.getRange("H" + ultimaFilaOtro).setValue("SEGUNDA CUOTA");
-          sheetOtro.getRange("I" + ultimaFilaOtro).setValue(cuotas.segunda);
-          sheetOtro.getRange("J" + ultimaFilaOtro).setValue("ÚLTIMA CUOTA");
-          sheetOtro.getRange("K" + ultimaFilaOtro).setValue(cuotas.ultima);
-        }
-
-        verificarPago(ultimaFilaOtro, sheetOtro);
       }
     }
   } catch (e) {
@@ -185,7 +143,7 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
     parte.trim().includes("mae.")
   );
 
-  // Determinar cuotas basado en la carrera encontrada
+  // Determinar tipoCuota basado en la carrera encontrada
   if (carreraEncontrada) {
     if (esMaestria) {
       cuotaSegunda = categoriaA.includes(carreraEncontrada) ? 2500 : 2600;
@@ -203,13 +161,13 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
   };
 }
 
-function verificarPago(fila, sheetOtro) {
-  var concepto = sheetOtro
+function verificarPago(fila, plazosPagosCbba) {
+  var concepto = plazosPagosCbba
     .getRange("E" + fila)
     .getValue()
     .toLowerCase();
   if (concepto.includes("1er pago")) {
-    var valorColumnaG = sheetOtro.getRange("G" + fila).getValue();
+    var valorColumnaG = plazosPagosCbba.getRange("G" + fila).getValue();
     var primeraCuota = determinarCuotas(
       concepto,
       categoriaA,
@@ -217,8 +175,8 @@ function verificarPago(fila, sheetOtro) {
     ).primera;
     if (valorColumnaG == primeraCuota) {
       // Pintar celdas de verde en el otro sheet
-      sheetOtro.getRange("F" + fila).setBackground("green");
-      sheetOtro.getRange("G" + fila).setBackground("green");
+      plazosPagosCbba.getRange("F" + fila).setBackground("green");
+      plazosPagosCbba.getRange("G" + fila).setBackground("green");
     }
   }
 }
