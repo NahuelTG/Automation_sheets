@@ -1,83 +1,81 @@
+var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
+var plazosPagosCbba = SpreadsheetApp.openByUrl(
+  "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
+).getSheetByName("TESISTAS");
+
+// Listas de abreviaturas por categorías
+var categoriaA = [
+  "arts. plásticas",
+  "dis. gráfico",
+  "art. musicales",
+  "antro. y arqueología",
+  "com. social",
+  "sociología",
+  "trab. social",
+  "derecho",
+  "cs. políticas",
+  "rel. internacionales",
+  "cs. información",
+  "cs. educación",
+  "filosofía",
+  "historia",
+  "lingüística",
+  "literatura",
+  "psicología",
+  "turismo",
+];
+var categoriaB = [
+  "arquitectura",
+  "veterinaria",
+  "ing. agronómica",
+  "ing. agropecuaria",
+  "adm. empresas",
+  "contaduría",
+  "economía",
+  "marketing",
+  "bioquímica",
+  "farmacéutica",
+  "ing. geográfica",
+  "ing. geológica",
+  "medicina",
+  "enfermería",
+  "nutrición",
+  "tec. médica",
+  "odontología",
+  "aeronáutica",
+  "cons. civiles",
+  "elec. industrial",
+  "telecomunicaciones",
+  "ing. electromecánica",
+  "mec. automotriz",
+  "mec. industrial",
+  "qui. industrial",
+  "ing. topografía",
+  "biología",
+  "cs. químicas",
+  "estadística",
+  "física",
+  "informática",
+  "matemáticas",
+  "industrial",
+];
 function onEdit(event) {
   try {
     var filaEditada = event.range.getRow();
+    var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
+    var concepto = libroCbba.getRange("E" + filaEditada).getValue();
+    var codigo = libroCbba.getRange("B" + filaEditada).getValue();
+    var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
+    var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
+    var nombreContrato =
+      concepto.split(",").length > 1
+        ? concepto.split(",")[1].trim().toUpperCase()
+        : "";
 
     if (filaEditada < 2) {
       // No hacer nada si se edita en la cabecera
       return;
     }
-
-    var libroCbba =
-      SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
-    var plazosPagosCbba = SpreadsheetApp.openByUrl(
-      "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
-    ).getSheetByName("TESISTAS");
-
-    // Listas de abreviaturas por categorías
-    var categoriaA = [
-      "arts. plásticas",
-      "dis. gráfico",
-      "art. musicales",
-      "antro. y arqueología",
-      "com. social",
-      "sociología",
-      "trab. social",
-      "derecho",
-      "cs. políticas",
-      "rel. internacionales",
-      "cs. información",
-      "cs. educación",
-      "filosofía",
-      "historia",
-      "lingüística",
-      "literatura",
-      "psicología",
-      "turismo",
-    ];
-    var categoriaB = [
-      "arquitectura",
-      "veterinaria",
-      "ing. agronómica",
-      "ing. agropecuaria",
-      "adm. empresas",
-      "contaduría",
-      "economía",
-      "marketing",
-      "bioquímica",
-      "farmacéutica",
-      "ing. geográfica",
-      "ing. geológica",
-      "medicina",
-      "enfermería",
-      "nutrición",
-      "tec. médica",
-      "odontología",
-      "aeronáutica",
-      "cons. civiles",
-      "elec. industrial",
-      "telecomunicaciones",
-      "ing. electromecánica",
-      "mec. automotriz",
-      "mec. industrial",
-      "qui. industrial",
-      "ing. topografía",
-      "biología",
-      "cs. químicas",
-      "estadística",
-      "física",
-      "informática",
-      "matemáticas",
-      "industrial",
-    ];
-
-    var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
-    var concepto = libroCbba.getRange("E" + filaEditada).getValue();
-    var codigo = libroCbba.getRange("B" + filaEditada).getValue();
-    var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
-    var nombreContrato =
-      concepto.split(",").length > 1
-        ? partesConcepto[1].trim().toUpperCase()
-        : "";
 
     if (codigo && codigo.match(/^SPACBBOL \d+$/)) {
       var datosOtro = plazosPagosCbba
@@ -100,7 +98,13 @@ function onEdit(event) {
             plazosPagosCbba.getRange("K" + (j + 3)).setValue(tipoCuota.ultima);
           }
 
-          verificarPago(j + 3, plazosPagosCbba);
+          verificarCuotas(
+            j + 3,
+            plazosPagosCbba,
+            ingreso,
+            concepto,
+            verificarSubCuota(concepto)
+          );
           break;
         }
       }
@@ -114,10 +118,8 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
   var cuotaPrimera = 2000;
   var cuotaSegunda = 0;
   var cuotaUltima = 0;
-
   var conceptoMinusculas = concepto.toLowerCase(); // Convertir concepto a minúsculas para la comparación
   var partesConcepto = concepto.split(",");
-
   var carreraEncontrada = null;
 
   // Verificar categoría A
@@ -127,7 +129,6 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
       break;
     }
   }
-
   // Si no se encontró en categoría A, verificar categoría B
   if (!carreraEncontrada) {
     for (var j = 0; j < categoriaB.length; j++) {
@@ -137,12 +138,10 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
       }
     }
   }
-
   // Verificar si es maestría
   var esMaestria = partesConcepto.some((parte) =>
     parte.trim().includes("mae.")
   );
-
   // Determinar tipoCuota basado en la carrera encontrada
   if (carreraEncontrada) {
     if (esMaestria) {
@@ -161,22 +160,52 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
   };
 }
 
-function verificarPago(fila, plazosPagosCbba) {
-  var concepto = plazosPagosCbba
-    .getRange("E" + fila)
-    .getValue()
-    .toLowerCase();
-  if (concepto.includes("1er pago")) {
-    var valorColumnaG = plazosPagosCbba.getRange("G" + fila).getValue();
-    var primeraCuota = determinarCuotas(
-      concepto,
-      categoriaA,
-      categoriaB
-    ).primera;
-    if (valorColumnaG == primeraCuota) {
-      // Pintar celdas de verde en el otro sheet
-      plazosPagosCbba.getRange("F" + fila).setBackground("green");
-      plazosPagosCbba.getRange("G" + fila).setBackground("green");
+function verificarSubCuota(concepto) {
+  var match = concepto.match(/(\w),/);
+  var subCuota = false;
+  // Si se encuentra una letra antes de la coma
+  if (match) {
+    var tipoConcepto = match[1];
+    // Verificar si el carácter es una letra mayúscula (ASCII 65-90)
+    if (tipoConcepto.charCodeAt(0) >= 65 && tipoConcepto.charCodeAt(0) <= 90) {
+      subCuota = true;
     }
   }
+  return subCuota;
+}
+
+function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
+  if (subCuota) {
+    return "";
+  } else {
+    if (concepto.includes("1ra cuota")) {
+      var valorColumnaG = plazosPagosCbba.getRange("G" + fila).getValue();
+      if (valorColumnaG == ingreso) {
+        // Pintar celdas de verde en el otro sheet
+        plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
+        plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
+      }
+    }
+    if (concepto.includes("2da cuota")) {
+      var valorColumnaG = plazosPagosCbba.getRange("I" + fila).getValue();
+      if (valorColumnaG == ingreso) {
+        // Pintar celdas de verde en el otro sheet
+        plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
+        plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
+      }
+    }
+    if (concepto.includes("3ra cuota")) {
+      var valorColumnaG = plazosPagosCbba.getRange("K" + fila).getValue();
+      if (valorColumnaG == ingreso) {
+        // Pintar celdas de verde en el otro sheet
+        plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
+        plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
+      }
+    }
+  }
+}
+
+// Ejemplo de uso
+function test() {
+  actualizarDatos(781, "SPACBBOL 196");
 }

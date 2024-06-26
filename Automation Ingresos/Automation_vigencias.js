@@ -1,81 +1,80 @@
-function onEdit(event) {
-  try {
-    var filaEditada = event.range.getRow();
+var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
+var plazosPagosCbba = SpreadsheetApp.openByUrl(
+  "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
+).getSheetByName("TESISTAS");
 
+// Listas de abreviaturas por categorías
+var categoriaA = [
+  "arts. plásticas",
+  "dis. gráfico",
+  "art. musicales",
+  "antro. y arqueología",
+  "com. social",
+  "sociología",
+  "trab. social",
+  "derecho",
+  "cs. políticas",
+  "rel. internacionales",
+  "cs. información",
+  "cs. educación",
+  "filosofía",
+  "historia",
+  "lingüística",
+  "literatura",
+  "psicología",
+  "turismo",
+];
+var categoriaB = [
+  "arquitectura",
+  "veterinaria",
+  "ing. agronómica",
+  "ing. agropecuaria",
+  "adm. empresas",
+  "contaduría",
+  "economía",
+  "marketing",
+  "bioquímica",
+  "farmacéutica",
+  "ing. geográfica",
+  "ing. geológica",
+  "medicina",
+  "enfermería",
+  "nutrición",
+  "tec. médica",
+  "odontología",
+  "aeronáutica",
+  "cons. civiles",
+  "elec. industrial",
+  "telecomunicaciones",
+  "ing. electromecánica",
+  "mec. automotriz",
+  "mec. industrial",
+  "qui. industrial",
+  "ing. topografía",
+  "biología",
+  "cs. químicas",
+  "estadística",
+  "física",
+  "informática",
+  "matemáticas",
+  "industrial",
+];
+
+function actualizarDatos(filaEditada, codigo) {
+  var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
+  var concepto = libroCbba.getRange("E" + filaEditada).getValue();
+  var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
+  var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
+  var nombreContrato =
+    concepto.split(",").length > 1
+      ? concepto.split(",")[1].trim().toUpperCase()
+      : "";
+
+  try {
     if (filaEditada < 2) {
       // No hacer nada si se edita en la cabecera
       return;
     }
-    var libroCbba =
-      SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
-    var plazosPagosCbba = SpreadsheetApp.openByUrl(
-      "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
-    ).getSheetByName("TESISTAS");
-
-    // Listas de abreviaturas por categorías
-    var categoriaA = [
-      "arts. plásticas",
-      "dis. gráfico",
-      "art. musicales",
-      "antro. y arqueología",
-      "com. social",
-      "sociología",
-      "trab. social",
-      "derecho",
-      "cs. políticas",
-      "rel. internacionales",
-      "cs. información",
-      "cs. educación",
-      "filosofía",
-      "historia",
-      "lingüística",
-      "literatura",
-      "psicología",
-      "turismo",
-    ];
-    var categoriaB = [
-      "arquitectura",
-      "veterinaria",
-      "ing. agronómica",
-      "ing. agropecuaria",
-      "adm. empresas",
-      "contaduría",
-      "economía",
-      "marketing",
-      "bioquímica",
-      "farmacéutica",
-      "ing. geográfica",
-      "ing. geológica",
-      "medicina",
-      "enfermería",
-      "nutrición",
-      "tec. médica",
-      "odontología",
-      "aeronáutica",
-      "cons. civiles",
-      "elec. industrial",
-      "telecomunicaciones",
-      "ing. electromecánica",
-      "mec. automotriz",
-      "mec. industrial",
-      "qui. industrial",
-      "ing. topografía",
-      "biología",
-      "cs. químicas",
-      "estadística",
-      "física",
-      "informática",
-      "matemáticas",
-      "industrial",
-    ];
-    var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
-    var concepto = libroCbba.getRange("E" + filaEditada).getValue();
-    var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
-    var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
-    var nombreContrato =
-      concepto.split(",").length > 1
-        ? concepto.split(",")[1].trim().toUpperCase()
-        : "";
 
     if (codigo && codigo.match(/^SPACBBOL \d+$/)) {
       var datosOtro = plazosPagosCbba
