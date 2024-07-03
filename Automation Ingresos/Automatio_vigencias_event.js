@@ -81,15 +81,12 @@ function onEdit(event) {
       var datosOtro = plazosPagosCbba
         .getRange("A3:A" + plazosPagosCbba.getLastRow())
         .getValues();
-      var encontrado = false;
 
       for (var j = 0; j < datosOtro.length; j++) {
         if (datosOtro[j][0] == codigo) {
-          encontrado = true;
-          plazosPagosCbba.getRange("B" + (j + 3)).setValue(nombreContrato);
-          plazosPagosCbba.getRange("C" + (j + 3)).setValue(nombreCliente);
-
           if (concepto.includes("1ra cuota")) {
+            plazosPagosCbba.getRange("B" + (j + 3)).setValue(nombreContrato);
+            plazosPagosCbba.getRange("C" + (j + 3)).setValue(nombreCliente);
             plazosPagosCbba.getRange("F" + (j + 3)).setValue("PRIMERA CUOTA");
             plazosPagosCbba.getRange("G" + (j + 3)).setValue(tipoCuota.primera);
             plazosPagosCbba.getRange("H" + (j + 3)).setValue("SEGUNDA CUOTA");
