@@ -1,4 +1,59 @@
-function ActualizarRangoMinusculas(e) {
+function ActualizarMinusculas(e) {
+  const range = e.range;
+
+  // Comprobar si la edición se realizó en la columna E (índice 5)
+  if (range.getSheet().getName() === "2024" && range.getColumn() === 5) {
+    let text = range.getValue();
+
+    // Comprobar si el texto no es nulo o vacío
+    if (text) {
+      // Dividir el texto por la primera aparición de "-"
+      let hyphenIndex = text.indexOf("-");
+      let firstPart, remainingPart;
+
+      if (hyphenIndex !== -1) {
+        firstPart = text.substring(0, hyphenIndex);
+        remainingPart = text.substring(hyphenIndex).toUpperCase();
+      } else {
+        firstPart = text;
+        remainingPart = "";
+      }
+
+      // Dividir la parte antes del guion por la primera aparición de ","
+      let commaIndex = firstPart.indexOf(",");
+      if (commaIndex !== -1) {
+        let beforeComma = firstPart.substring(0, commaIndex + 1);
+        let afterComma = firstPart.substring(commaIndex + 1).trim();
+
+        // Procesar la parte antes de la coma: primera letra en mayúscula, el resto se mantiene igual
+        if (beforeComma) {
+          beforeComma =
+            beforeComma.charAt(0).toUpperCase() + beforeComma.slice(1);
+        }
+
+        // Procesar la parte después de la coma: primera letra en mayúscula, el resto en minúsculas
+        if (afterComma) {
+          afterComma =
+            afterComma.charAt(0).toUpperCase() +
+            afterComma.slice(1).toLowerCase();
+        }
+
+        // Reunir las partes
+        firstPart = beforeComma + " " + afterComma;
+      } else {
+        // Procesar la primera parte si no hay coma: primera letra en mayúscula, el resto se mantiene igual
+        firstPart = firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
+      }
+
+      // Reunir las partes
+      text = firstPart + remainingPart;
+
+      // Establecer el valor procesado de nuevo en la celda editada
+      range.setValue(text);
+    }
+  }
+}
+function ActualizarMinusculasAuto(e) {
   const sheet = e.source.getSheetByName("2024");
   const range = e.range;
 
@@ -64,63 +119,6 @@ function ActualizarRangoMinusculas(e) {
           }
         }
       }
-    }
-  }
-}
-
-function ActualizarMinusculas(e) {
-  const sheet = e.source.getSheetByName("2024");
-  const range = e.range;
-
-  // Comprobar si la edición se realizó en la columna E (índice 5)
-  if (range.getSheet().getName() === "2024" && range.getColumn() === 5) {
-    let text = range.getValue();
-
-    // Comprobar si el texto no es nulo o vacío
-    if (text) {
-      // Dividir el texto por la primera aparición de "-"
-      let hyphenIndex = text.indexOf("-");
-      let firstPart, remainingPart;
-
-      if (hyphenIndex !== -1) {
-        firstPart = text.substring(0, hyphenIndex);
-        remainingPart = text.substring(hyphenIndex).toUpperCase();
-      } else {
-        firstPart = text;
-        remainingPart = "";
-      }
-
-      // Dividir la parte antes del guion por la primera aparición de ","
-      let commaIndex = firstPart.indexOf(",");
-      if (commaIndex !== -1) {
-        let beforeComma = firstPart.substring(0, commaIndex + 1);
-        let afterComma = firstPart.substring(commaIndex + 1).trim();
-
-        // Procesar la parte antes de la coma: primera letra en mayúscula, el resto se mantiene igual
-        if (beforeComma) {
-          beforeComma =
-            beforeComma.charAt(0).toUpperCase() + beforeComma.slice(1);
-        }
-
-        // Procesar la parte después de la coma: primera letra en mayúscula, el resto en minúsculas
-        if (afterComma) {
-          afterComma =
-            afterComma.charAt(0).toUpperCase() +
-            afterComma.slice(1).toLowerCase();
-        }
-
-        // Reunir las partes
-        firstPart = beforeComma + " " + afterComma;
-      } else {
-        // Procesar la primera parte si no hay coma: primera letra en mayúscula, el resto se mantiene igual
-        firstPart = firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
-      }
-
-      // Reunir las partes
-      text = firstPart + remainingPart;
-
-      // Establecer el valor procesado de nuevo en la celda editada
-      range.setValue(text);
     }
   }
 }

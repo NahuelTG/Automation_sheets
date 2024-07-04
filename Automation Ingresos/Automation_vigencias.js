@@ -58,6 +58,7 @@ var categoriaB = [
   "informática",
   "matemáticas",
   "industrial",
+  "comercial",
 ];
 
 var ingresoPrimero = 0;
@@ -264,6 +265,7 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
         // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("F" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("G" + fila).setBackground("#ffff00");
@@ -274,6 +276,7 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
       if (valorColumnaSeg == ingresoSegundo) {
         plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("H" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("I" + fila).setBackground("#ffff00");
@@ -284,6 +287,7 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
       if (valorColumnaTer == ingresoTercero) {
         plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("J" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("K" + fila).setBackground("#ffff00");
@@ -305,12 +309,31 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
       }
     }
     if (concepto.includes("3ra cuota")) {
-      if (valorColumnater == ingreso) {
+      if (valorColumnaTer == ingreso) {
         // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
       }
     }
+  }
+}
+
+function dejarObservaciones(fila, plazosPagosCbba) {
+  const celda = plazosPagosCbba.getRange("M" + fila);
+  const textoOriginal = celda.getValue();
+
+  // Buscar "canceló" y última coma
+  const indiceCancelo = textoOriginal.indexOf("canceló");
+  const indiceUltimaComa = textoOriginal.lastIndexOf(",");
+
+  if (indiceCancelo !== -1 && indiceUltimaComa !== -1) {
+    const textoAntesCancelo = textoOriginal.substring(0, indiceCancelo).trim();
+    const textoDespuesUltimaComa = textoOriginal
+      .substring(indiceUltimaComa + 1)
+      .trim();
+    const nuevoTexto = textoAntesCancelo + " " + textoDespuesUltimaComa;
+
+    celda.setValue(nuevoTexto);
   }
 }
 
@@ -327,60 +350,146 @@ function verificarYActualizarM(fila, plazosPagosCbba, nroCuota) {
       );
       columnaM.setBackground("#ffff00");
     } else {
-      // Separar el texto en partes
-      var partes = separarTexto(valorColumnaM);
+      if (
+        valorColumnaM.includes("canceló") &&
+        valorColumnaM.includes("faltan")
+      ) {
+        // Separar el texto en partes
+        var partes = separarTexto(valorColumnaM);
 
-      var parte1 = partes[0]; // "El tesista canceló Bs."
-      var ingresoPasado = parseFloat(partes[1]); // 1500
-      var parte3 = partes[2]; // ", faltan Bs."
-      var parte4 = partes[3]; // ","
+        var parte1 = partes[0]; // "El tesista canceló Bs."
+        var ingresoPasado = parseFloat(partes[1]); // 1500
+        var parte3 = partes[2]; // ", faltan Bs."
+        var parte4 = partes[3]; // ","
 
-      var nuevaDiferencia =
-        obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
-      // Reconstruir el texto actualizado
-      var textoActualizado =
-        parte1 + ingresoPrimero + parte3 + nuevaDiferencia + parte4;
-      // Borrar contenido de la celda antes de actualizar
-      columnaM.clearContent();
-      // Actualizar la columna M con el texto actualizado
-      columnaM.setValue(textoActualizado);
+        var nuevaDiferencia =
+          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
+        // Reconstruir el texto actualizado
+        var textoActualizado =
+          parte1 + ingresoPrimero + parte3 + nuevaDiferencia + parte4;
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto actualizado
+        columnaM.setValue(textoActualizado);
+      } else {
+        // Obtener el texto existente en la columna M
+        var textoExistente = valorColumnaM;
+
+        // Generar el nuevo texto
+        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
+        var diferencia = cuotaValue - ingresoPrimero;
+        var nuevoTexto =
+          "canceló Bs." + ingresoPrimero + ", faltan Bs." + diferencia + ",";
+
+        // Concatenar el texto existente al final del nuevo texto
+        var textoFinal = nuevoTexto + " " + textoExistente;
+
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto final
+        columnaM.setValue(textoFinal);
+      }
     }
   }
   if (nroCuota == "2da cuota") {
-    var partes = separarTexto(valorColumnaM);
+    if (valorColumnaM === "") {
+      var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
+      var diferencia = cuotaValue - ingresoSegundo;
+      columnaM.setValue(
+        "canceló Bs." + ingresoSegundo + ", faltan Bs." + diferencia + ","
+      );
+      columnaM.setBackground("#ffff00");
+    } else {
+      if (
+        valorColumnaM.includes("canceló") &&
+        valorColumnaM.includes("faltan")
+      ) {
+        // Separar el texto en partes
+        var partes = separarTexto(valorColumnaM);
 
-    var parte1 = partes[0]; // "El tesista canceló Bs."
-    var ingresoPasado = parseFloat(partes[1]); // 1500
-    var parte3 = partes[2]; // ", faltan Bs."
-    var parte4 = partes[3]; // ","
+        var parte1 = partes[0]; // "El tesista canceló Bs."
+        var ingresoPasado = parseFloat(partes[1]); // 1500
+        var parte3 = partes[2]; // ", faltan Bs."
+        var parte4 = partes[3]; // ","
 
-    var nuevaDiferencia =
-      obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoSegundo;
-    // Reconstruir el texto actualizado
-    var textoActualizado =
-      parte1 + ingresoSegundo + parte3 + nuevaDiferencia + parte4;
-    // Borrar contenido de la celda antes de actualizar
-    columnaM.clearContent();
-    // Actualizar la columna M con el texto actualizado
-    columnaM.setValue(textoActualizado);
+        var nuevaDiferencia =
+          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
+        // Reconstruir el texto actualizado
+        var textoActualizado =
+          parte1 + ingresoSegundo + parte3 + nuevaDiferencia + parte4;
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto actualizado
+        columnaM.setValue(textoActualizado);
+      } else {
+        // Obtener el texto existente en la columna M
+        var textoExistente = valorColumnaM;
+
+        // Generar el nuevo texto
+        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
+        var diferencia = cuotaValue - ingresoSegundo;
+        var nuevoTexto =
+          "canceló Bs." + ingresoSegundo + ", faltan Bs." + diferencia + ",";
+
+        // Concatenar el texto existente al final del nuevo texto
+        var textoFinal = nuevoTexto + " " + textoExistente;
+
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto final
+        columnaM.setValue(textoFinal);
+      }
+    }
   }
   if (nroCuota == "3ra cuota") {
-    var partes = separarTexto(valorColumnaM);
+    if (valorColumnaM === "") {
+      var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
+      var diferencia = cuotaValue - ingresoTercero;
+      columnaM.setValue(
+        "canceló Bs." + ingresoTercero + ", faltan Bs." + diferencia + ","
+      );
+      columnaM.setBackground("#ffff00");
+    } else {
+      if (
+        valorColumnaM.includes("canceló") &&
+        valorColumnaM.includes("faltan")
+      ) {
+        // Separar el texto en partes
+        var partes = separarTexto(valorColumnaM);
 
-    var parte1 = partes[0]; // "El tesista canceló Bs."
-    var ingresoPasado = parseFloat(partes[1]); // 1500
-    var parte3 = partes[2]; // ", faltan Bs."
-    var parte4 = partes[3]; // ","
+        var parte1 = partes[0]; // "El tesista canceló Bs."
+        var ingresoPasado = parseFloat(partes[1]); // 1500
+        var parte3 = partes[2]; // ", faltan Bs."
+        var parte4 = partes[3]; // ","
 
-    var nuevaDiferencia =
-      obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoTercero;
-    // Reconstruir el texto actualizado
-    var textoActualizado =
-      parte1 + ingresoTercero + parte3 + nuevaDiferencia + parte4;
-    // Borrar contenido de la celda antes de actualizar
-    columnaM.clearContent();
-    // Actualizar la columna M con el texto actualizado
-    columnaM.setValue(textoActualizado);
+        var nuevaDiferencia =
+          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoTercero;
+        // Reconstruir el texto actualizado
+        var textoActualizado =
+          parte1 + ingresoTercero + parte3 + nuevaDiferencia + parte4;
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto actualizado
+        columnaM.setValue(textoActualizado);
+      } else {
+        // Obtener el texto existente en la columna M
+        var textoExistente = valorColumnaM;
+
+        // Generar el nuevo texto
+        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
+        var diferencia = cuotaValue - ingresoPrimero;
+        var nuevoTexto =
+          "canceló Bs." + ingresoPrimero + ", faltan Bs." + diferencia + ",";
+
+        // Concatenar el texto existente al final del nuevo texto
+        var textoFinal = nuevoTexto + " " + textoExistente;
+
+        // Borrar contenido de la celda antes de actualizar
+        columnaM.clearContent();
+        // Actualizar la columna M con el texto final
+        columnaM.setValue(textoFinal);
+      }
+    }
   }
 }
 

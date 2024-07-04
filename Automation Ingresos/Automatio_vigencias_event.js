@@ -58,6 +58,7 @@ var categoriaB = [
   "informática",
   "matemáticas",
   "industrial",
+  "comercial",
 ];
 var ingresoPrimero = 0;
 var ingresoSegundo = 0;
@@ -315,9 +316,10 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
     if (concepto.includes("1ra cuota")) {
       verificarYActualizarM(fila, plazosPagosCbba, "1ra cuota");
       if (valorColumnaPri == ingresoPrimero) {
-        // Pintar celdas de verde en el otro libroCbba
+        // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("F" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("G" + fila).setBackground("#ffff00");
@@ -328,6 +330,7 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
       if (valorColumnaSeg == ingresoSegundo) {
         plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("H" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("I" + fila).setBackground("#ffff00");
@@ -338,6 +341,7 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
       if (valorColumnaTer == ingresoTercero) {
         plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
+        dejarObservaciones(fila, plazosPagosCbba);
       } else {
         plazosPagosCbba.getRange("J" + fila).setBackground("#ffff00");
         plazosPagosCbba.getRange("K" + fila).setBackground("#ffff00");
@@ -346,25 +350,44 @@ function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
   } else {
     if (concepto.includes("1ra cuota")) {
       if (valorColumnaPri == ingreso) {
-        // Pintar celdas de verde en el otro libroCbba
+        // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
       }
     }
     if (concepto.includes("2da cuota")) {
       if (valorColumnaSeg == ingreso) {
-        // Pintar celdas de verde en el otro libroCbba
+        // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
       }
     }
     if (concepto.includes("3ra cuota")) {
-      if (valorColumnater == ingreso) {
-        // Pintar celdas de verde en el otro libroCbba
+      if (valorColumnaTer == ingreso) {
+        // Pintar celdas de verde en el otro sheet
         plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
         plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
       }
     }
+  }
+}
+
+function dejarObservaciones(fila, plazosPagosCbba) {
+  const celda = plazosPagosCbba.getRange("M" + fila);
+  const textoOriginal = celda.getValue();
+
+  // Buscar "canceló" y última coma
+  const indiceCancelo = textoOriginal.indexOf("canceló");
+  const indiceUltimaComa = textoOriginal.lastIndexOf(",");
+
+  if (indiceCancelo !== -1 && indiceUltimaComa !== -1) {
+    const textoAntesCancelo = textoOriginal.substring(0, indiceCancelo).trim();
+    const textoDespuesUltimaComa = textoOriginal
+      .substring(indiceUltimaComa + 1)
+      .trim();
+    const nuevoTexto = textoAntesCancelo + " " + textoDespuesUltimaComa;
+
+    celda.setValue(nuevoTexto);
   }
 }
 
@@ -483,4 +506,14 @@ function separarTexto(texto) {
   var parte4 = texto.substring(coma2);
 
   return [parte1, parte2, parte3, parte4];
+}
+
+// Ejemplo de uso
+function test() {
+  actualizarDatos(781, "SPACBBOL 196");
+}
+
+function iter() {
+  var resultado = Iteracion("SPACBBOL 196");
+  Logger.log(resultado);
 }
