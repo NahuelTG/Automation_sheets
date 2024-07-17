@@ -119,7 +119,9 @@ function actualizarDatos(filaEditada, codigo) {
           plazosPagosCbba.getRange("H" + (j + 3)).setValue("SEGUNDA CUOTA");
           plazosPagosCbba.getRange("I" + (j + 3)).setValue(tipoCuota.segunda);
           plazosPagosCbba.getRange("J" + (j + 3)).setValue("ÚLTIMA CUOTA");
-          plazosPagosCbba.getRange("K" + (j + 3)).setValue(tipoCuota.ultima);
+          if (!concepto.includes("descuento")) {
+            plazosPagosCbba.getRange("K" + (j + 3)).setValue(tipoCuota.ultima);
+          }
         }
         break;
       }
@@ -350,45 +352,23 @@ function verificarYActualizarM(fila, plazosPagosCbba, nroCuota) {
       );
       columnaM.setBackground("#ffff00");
     } else {
-      if (
-        valorColumnaM.includes("canceló") &&
-        valorColumnaM.includes("faltan")
-      ) {
-        // Separar el texto en partes
-        var partes = separarTexto(valorColumnaM);
+      // Separar el texto en partes
+      var partes = separarTexto(valorColumnaM);
 
-        var parte1 = partes[0]; // "El tesista canceló Bs."
-        var ingresoPasado = parseFloat(partes[1]); // 1500
-        var parte3 = partes[2]; // ", faltan Bs."
-        var parte4 = partes[3]; // ","
+      var parte1 = partes[0]; // "El tesista canceló Bs."
+      var ingresoPasado = parseFloat(partes[1]); // 1500
+      var parte3 = partes[2]; // ", faltan Bs."
+      var parte4 = partes[3]; // ","
 
-        var nuevaDiferencia =
-          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
-        // Reconstruir el texto actualizado
-        var textoActualizado =
-          parte1 + ingresoPrimero + parte3 + nuevaDiferencia + parte4;
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto actualizado
-        columnaM.setValue(textoActualizado);
-      } else {
-        // Obtener el texto existente en la columna M
-        var textoExistente = valorColumnaM;
-
-        // Generar el nuevo texto
-        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-        var diferencia = cuotaValue - ingresoPrimero;
-        var nuevoTexto =
-          "canceló Bs." + ingresoPrimero + ", faltan Bs." + diferencia + ",";
-
-        // Concatenar el texto existente al final del nuevo texto
-        var textoFinal = nuevoTexto + " " + textoExistente;
-
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto final
-        columnaM.setValue(textoFinal);
-      }
+      var nuevaDiferencia =
+        obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
+      // Reconstruir el texto actualizado
+      var textoActualizado =
+        parte1 + ingresoPrimero + parte3 + nuevaDiferencia + parte4;
+      // Borrar contenido de la celda antes de actualizar
+      columnaM.clearContent();
+      // Actualizar la columna M con el texto actualizado
+      columnaM.setValue(textoActualizado);
     }
   }
   if (nroCuota == "2da cuota") {
@@ -524,7 +504,7 @@ function separarTexto(texto) {
 
 // Ejemplo de uso
 function test() {
-  actualizarDatos(786, "SPACBBOL 196");
+  actualizarDatos(803, "SPACBBOL 162");
 }
 
 function iter() {
