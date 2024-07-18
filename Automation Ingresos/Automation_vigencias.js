@@ -1,230 +1,250 @@
-var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
+var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024");
 var plazosPagosCbba = SpreadsheetApp.openByUrl(
   "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
 ).getSheetByName("TESISTAS");
 
-// Listas de abreviaturas por categorías
 var categoriaA = [
-  "arts. plásticas",
-  "dis. gráfico",
-  "art. musicales",
-  "antro. y arqueología",
-  "com. social",
+  "plásticas",
+  "plasticas",
+  "art.",
+  "gráfico",
+  "grafico",
+  "musica",
+  "musical",
+  "musicales",
+  "arqueología",
+  "arqueologia",
+  "antropologia",
+  "antropología",
+  "social",
+  "comunicación",
+  "comunicacion",
   "sociología",
-  "trab. social",
+  "sociologia",
   "derecho",
-  "cs. políticas",
-  "rel. internacionales",
-  "cs. información",
-  "cs. educación",
+  "políticas",
+  "politicas",
+  "política",
+  "politica",
+  "internacionales",
+  "información",
+  "informacion",
+  "educación",
+  "educacion",
   "filosofía",
+  "filosofia",
   "historia",
   "lingüística",
+  "linguistica",
   "literatura",
   "psicología",
+  "psicologia",
   "turismo",
 ];
 var categoriaB = [
   "arquitectura",
   "veterinaria",
-  "ing. agronómica",
-  "ing. agropecuaria",
-  "adm. empresas",
+  "agronómica",
+  "agronomica",
+  "agronomia",
+  "agronomía",
+  "agropecuaria",
+  "empresas",
+  "empresa",
+  "administración",
+  "administracion",
   "contaduría",
+  "contaduria",
   "economía",
+  "economia",
   "marketing",
   "bioquímica",
+  "bioquimica",
   "farmacéutica",
-  "ing. geográfica",
-  "ing. geológica",
+  "farmaceutica",
+  "geográfica",
+  "geografica",
+  "geológica",
+  "geologica",
   "medicina",
   "enfermería",
+  "enfermeria",
   "nutrición",
-  "tec. médica",
+  "nutricion",
+  "médica",
+  "medica",
+  "medico",
   "odontología",
+  "odontologia",
   "aeronáutica",
-  "cons. civiles",
-  "elec. industrial",
-  "telecomunicaciones",
-  "ing. electromecánica",
-  "mec. automotriz",
-  "mec. industrial",
-  "qui. industrial",
-  "ing. topografía",
-  "biología",
-  "cs. químicas",
-  "estadística",
-  "física",
-  "informática",
-  "matemáticas",
+  "aeronautica",
+  "civiles",
+  "civil",
   "industrial",
-  "comercial",
+  "telecomunicaciones",
+  "electromecánica",
+  "electromecanica",
+  "automotriz",
+  "topografía",
+  "topografia",
+  "biología",
+  "biologia",
+  "químicas",
+  "quimicas",
+  "quimica",
+  "química",
+  "estadística",
+  "estadistica",
+  "física",
+  "fisica",
+  "informática",
+  "informatica",
+  "matemáticas",
+  "matematicas",
+  "matemática",
+  "matematica",
 ];
 
-var ingresoPrimero = 0;
-var ingresoSegundo = 0;
-var ingresoTercero = 0;
+var ingresos = {
+  primero: 0,
+  segundo: 0,
+  tercero: 0,
+};
 
 function actualizarDatos(filaEditada, codigo) {
+  if (filaEditada < 2) return; // No hacer nada si se edita en la cabecera
+  var numeroCodigo = parseInt(codigo.split(" ")[1]);
+  if (numeroCodigo < 150) return;
+
   var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
   var concepto = libroCbba.getRange("E" + filaEditada).getValue();
   var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
   var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
-  var nombreContrato =
-    concepto.split(",").length > 1
-      ? concepto.split(",")[1].trim().toUpperCase()
-      : "";
+  var nombreContrato = obtenerNombreContrato(concepto);
 
-  try {
-    if (filaEditada < 2) {
-      // No hacer nada si se edita en la cabecera
-      return;
-    }
+  var cliente = obtenerCliente(codigo);
+  actualizarIngresos(cliente);
 
-    var cliente = Iteracion(codigo);
-    var datosOtro = plazosPagosCbba
-      .getRange("A3:A" + plazosPagosCbba.getLastRow())
-      .getValues();
-    var filaPlazos = 0;
+  var filaPlazos = buscarFilaPlazos(codigo);
+  if (filaPlazos > 0) {
+    actualizarPlazos(
+      filaPlazos,
+      nombreContrato,
+      nombreCliente,
+      concepto,
+      tipoCuota
+    );
+  }
 
-    for (var j = 0; j < cliente.length; j++) {
-      if (
-        cliente[j].concepto.includes("1ra cuota") &&
-        verificarSubCuota(cliente[j].concepto)
-      ) {
-        ingresoPrimero = ingresoPrimero + cliente[j].ingreso;
-      }
-      if (
-        cliente[j].concepto.includes("2da cuota") &&
-        verificarSubCuota(cliente[j].concepto)
-      ) {
-        ingresoSegundo = ingresoSegundo + cliente[j].ingreso;
-      }
-      if (
-        cliente[j].concepto.includes("3ra cuota") &&
-        verificarSubCuota(cliente[j].concepto)
-      ) {
-        ingresoTercero = ingresoTercero + cliente[j].ingreso;
-      }
-    }
-
-    for (var j = 0; j < datosOtro.length; j++) {
-      if (datosOtro[j][0] == codigo) {
-        filaPlazos = j;
-        if (concepto.includes("1ra cuota")) {
-          plazosPagosCbba.getRange("B" + (j + 3)).setValue(nombreContrato);
-          plazosPagosCbba.getRange("C" + (j + 3)).setValue(nombreCliente);
-          plazosPagosCbba.getRange("F" + (j + 3)).setValue("PRIMERA CUOTA");
-          plazosPagosCbba.getRange("G" + (j + 3)).setValue(tipoCuota.primera);
-          plazosPagosCbba.getRange("H" + (j + 3)).setValue("SEGUNDA CUOTA");
-          plazosPagosCbba.getRange("I" + (j + 3)).setValue(tipoCuota.segunda);
-          plazosPagosCbba.getRange("J" + (j + 3)).setValue("ÚLTIMA CUOTA");
-          if (!concepto.includes("descuento")) {
-            plazosPagosCbba.getRange("K" + (j + 3)).setValue(tipoCuota.ultima);
-          }
-        }
-        break;
-      }
-    }
-    if (verificarSubCuota(concepto)) {
-      if (concepto.includes("1ra cuota")) {
-        verificarCuotas(
-          filaPlazos + 3,
-          plazosPagosCbba,
-          ingresoPrimero,
-          concepto,
-          verificarSubCuota(concepto)
-        );
-      }
-      if (concepto.includes("2da cuota")) {
-        verificarCuotas(
-          filaPlazos + 3,
-          plazosPagosCbba,
-          ingresoSegundo,
-          concepto,
-          verificarSubCuota(concepto)
-        );
-      }
-      if (concepto.includes("3ra cuota")) {
-        verificarCuotas(
-          filaPlazos + 3,
-          plazosPagosCbba,
-          ingresoTercero,
-          concepto,
-          verificarSubCuota(concepto)
-        );
-      }
-    } else {
-      verificarCuotas(
-        filaPlazos + 3,
-        plazosPagosCbba,
-        ingreso,
-        concepto,
-        verificarSubCuota(concepto)
-      );
-    }
-  } catch (e) {
-    Logger.log(e.toString());
+  if (verificarSubCuota(concepto)) {
+    actualizarCuotasSubCuota(filaPlazos + 3, concepto);
+  } else {
+    actualizarCuotas(filaPlazos + 3, ingreso, concepto);
   }
 }
 
-function Iteracion(codigo) {
-  var datosOtroLibro = libroCbba
-    .getRange("B2:G" + libroCbba.getLastRow())
+function obtenerNombreContrato(concepto) {
+  var partes = concepto.split(",");
+  if (partes.length > 1) {
+    var nombreContrato = partes[1].trim();
+    var indiceParentesis = nombreContrato.indexOf("(");
+    if (indiceParentesis !== -1) {
+      nombreContrato = nombreContrato.substring(0, indiceParentesis).trim();
+    }
+    return nombreContrato.toUpperCase();
+  }
+  return "";
+}
+
+function obtenerCliente(codigo) {
+  var hojas = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  var clientes = [];
+
+  hojas.forEach((hoja) => {
+    var datos = hoja.getRange("B2:G" + hoja.getLastRow()).getValues();
+    var clientesEnHoja = datos
+      .filter((fila) => fila[0] === codigo)
+      .map((fila) => ({
+        concepto: fila[3],
+        nombre: fila[2],
+        ingreso: fila[5],
+      }));
+    clientes = clientes.concat(clientesEnHoja);
+  });
+
+  return clientes;
+}
+
+function actualizarIngresos(cliente) {
+  ingresos = { primero: 0, segundo: 0, tercero: 0 };
+
+  cliente.forEach((item) => {
+    if (item.concepto.includes("1ra cuota") && verificarSubCuota(item.concepto))
+      ingresos.primero += item.ingreso;
+    if (item.concepto.includes("2da cuota") && verificarSubCuota(item.concepto))
+      ingresos.segundo += item.ingreso;
+    if (item.concepto.includes("3ra cuota") && verificarSubCuota(item.concepto))
+      ingresos.tercero += item.ingreso;
+  });
+}
+
+function buscarFilaPlazos(codigo) {
+  var datos = plazosPagosCbba
+    .getRange("A3:A" + plazosPagosCbba.getLastRow())
     .getValues();
-  var filasCoincidentes = [];
+  for (var j = 0; j < datos.length; j++) {
+    if (datos[j][0] == codigo) return j;
+  }
+  return -1;
+}
 
-  if (codigo && codigo.match(/^SPACBBOL \d+$/)) {
-    for (var j = 0; j < datosOtroLibro.length; j++) {
-      var fila = datosOtroLibro[j];
-      var codigoFila = fila[0]; // Código en la columna B
-
-      if (codigoFila == codigo) {
-        var concepto = fila[3]; // Concepto en la columna E
-        var nombre = fila[2]; // Nombre en la columna D
-        var ingreso = fila[5]; // Ingreso en la columna G
-
-        // Almacenar la fila en el array de filas coincidentes
-        filasCoincidentes.push({
-          concepto: concepto,
-          nombre: nombre,
-          ingreso: ingreso,
-        });
+function actualizarPlazos(
+  filaPlazos,
+  nombreContrato,
+  nombreCliente,
+  concepto,
+  tipoCuota
+) {
+  if (concepto.includes("1ra cuota")) {
+    var celdaF = plazosPagosCbba.getRange("F" + (filaPlazos + 3));
+    if (celdaF.getValue() === "") {
+      plazosPagosCbba.getRange("B" + (filaPlazos + 3)).setValue(nombreContrato);
+      plazosPagosCbba.getRange("C" + (filaPlazos + 3)).setValue(nombreCliente);
+      celdaF.setValue("PRIMERA CUOTA");
+      plazosPagosCbba
+        .getRange("G" + (filaPlazos + 3))
+        .setValue(tipoCuota.primera);
+      plazosPagosCbba
+        .getRange("H" + (filaPlazos + 3))
+        .setValue("SEGUNDA CUOTA");
+      plazosPagosCbba
+        .getRange("I" + (filaPlazos + 3))
+        .setValue(tipoCuota.segunda);
+      plazosPagosCbba.getRange("J" + (filaPlazos + 3)).setValue("ÚLTIMA CUOTA");
+      if (!concepto.includes("descuento")) {
+        plazosPagosCbba
+          .getRange("K" + (filaPlazos + 3))
+          .setValue(tipoCuota.ultima);
       }
     }
   }
-  return filasCoincidentes;
 }
 
 function determinarCuotas(concepto, categoriaA, categoriaB) {
   var cuotaPrimera = 2000;
   var cuotaSegunda = 0;
   var cuotaUltima = 0;
-  var conceptoMinusculas = concepto.toLowerCase(); // Convertir concepto a minúsculas para la comparación
+  var conceptoMinusculas = concepto.toLowerCase();
   var partesConcepto = concepto.split(",");
-  var carreraEncontrada = null;
-
-  // Verificar categoría A
-  for (var i = 0; i < categoriaA.length; i++) {
-    if (conceptoMinusculas.includes(categoriaA[i])) {
-      carreraEncontrada = categoriaA[i];
-      break;
-    }
-  }
-  // Si no se encontró en categoría A, verificar categoría B
-  if (!carreraEncontrada) {
-    for (var j = 0; j < categoriaB.length; j++) {
-      if (conceptoMinusculas.includes(categoriaB[j])) {
-        carreraEncontrada = categoriaB[j];
-        break;
-      }
-    }
-  }
-  // Verificar si es maestría
+  var carreraEncontrada = encontrarCarrera(
+    conceptoMinusculas,
+    categoriaA,
+    categoriaB
+  );
   var esMaestria = partesConcepto.some((parte) =>
     parte.trim().includes("mae.")
   );
-  // Determinar tipoCuota basado en la carrera encontrada
+
   if (carreraEncontrada) {
     if (esMaestria) {
       cuotaSegunda = categoriaA.includes(carreraEncontrada) ? 2500 : 2600;
@@ -235,245 +255,91 @@ function determinarCuotas(concepto, categoriaA, categoriaB) {
     }
   }
 
-  return {
-    primera: cuotaPrimera,
-    segunda: cuotaSegunda,
-    ultima: cuotaUltima,
-  };
+  return { primera: cuotaPrimera, segunda: cuotaSegunda, ultima: cuotaUltima };
+}
+
+function encontrarCarrera(concepto, categoriaA, categoriaB) {
+  return (
+    categoriaA.find((cat) => concepto.includes(cat)) ||
+    categoriaB.find((cat) => concepto.includes(cat)) ||
+    null
+  );
 }
 
 function verificarSubCuota(concepto) {
   var match = concepto.match(/(\w),/);
-  var subCuota = false;
-  // Si se encuentra una letra antes de la coma
   if (match) {
     var tipoConcepto = match[1];
-    // Verificar si el carácter es una letra mayúscula (ASCII 65-90)
-    if (tipoConcepto.charCodeAt(0) >= 65 && tipoConcepto.charCodeAt(0) <= 90) {
-      subCuota = true;
-    }
+    return tipoConcepto.charCodeAt(0) >= 65 && tipoConcepto.charCodeAt(0) <= 90;
   }
-  return subCuota;
+  return false;
 }
 
-function verificarCuotas(fila, plazosPagosCbba, ingreso, concepto, subCuota) {
-  var valorColumnaPri = plazosPagosCbba.getRange("G" + fila).getValue();
-  var valorColumnaSeg = plazosPagosCbba.getRange("I" + fila).getValue();
-  var valorColumnaTer = plazosPagosCbba.getRange("K" + fila).getValue();
-  if (subCuota) {
-    if (concepto.includes("1ra cuota")) {
-      verificarYActualizarM(fila, plazosPagosCbba, "1ra cuota");
-      if (valorColumnaPri == ingresoPrimero) {
-        // Pintar celdas de verde en el otro sheet
-        plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
-        dejarObservaciones(fila, plazosPagosCbba);
-      } else {
-        plazosPagosCbba.getRange("F" + fila).setBackground("#ffff00");
-        plazosPagosCbba.getRange("G" + fila).setBackground("#ffff00");
-      }
-    }
-    if (concepto.includes("2da cuota")) {
-      verificarYActualizarM(fila, plazosPagosCbba, "2da cuota");
-      if (valorColumnaSeg == ingresoSegundo) {
-        plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
-        dejarObservaciones(fila, plazosPagosCbba);
-      } else {
-        plazosPagosCbba.getRange("H" + fila).setBackground("#ffff00");
-        plazosPagosCbba.getRange("I" + fila).setBackground("#ffff00");
-      }
-    }
-    if (concepto.includes("3ra cuota")) {
-      verificarYActualizarM(fila, plazosPagosCbba, "3ra cuota");
-      if (valorColumnaTer == ingresoTercero) {
-        plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
-        dejarObservaciones(fila, plazosPagosCbba);
-      } else {
-        plazosPagosCbba.getRange("J" + fila).setBackground("#ffff00");
-        plazosPagosCbba.getRange("K" + fila).setBackground("#ffff00");
-      }
-    }
+function actualizarCuotas(fila, ingreso, concepto) {
+  if (concepto.includes("1ra cuota")) actualizarCelda(fila, "F", "G", ingreso);
+  if (concepto.includes("2da cuota")) actualizarCelda(fila, "H", "I", ingreso);
+  if (concepto.includes("3ra cuota")) actualizarCelda(fila, "J", "K", ingreso);
+}
+
+function actualizarCelda(fila, colConcepto, colValor, ingreso) {
+  var valorCelda = plazosPagosCbba.getRange(colValor + fila).getValue();
+  if (valorCelda == ingreso) {
+    plazosPagosCbba.getRange(colConcepto + fila).setBackground("#7cd455");
+    plazosPagosCbba.getRange(colValor + fila).setBackground("#7cd455");
+  }
+}
+
+function actualizarCuotasSubCuota(fila, concepto) {
+  if (concepto.includes("1ra cuota"))
+    actualizarSubCuota(fila, "1ra cuota", ingresos.primero);
+  if (concepto.includes("2da cuota"))
+    actualizarSubCuota(fila, "2da cuota", ingresos.segundo);
+  if (concepto.includes("3ra cuota"))
+    actualizarSubCuota(fila, "3ra cuota", ingresos.tercero);
+}
+
+function actualizarSubCuota(fila, nroCuota, ingresoTotal) {
+  verificarYActualizarM(fila, nroCuota, ingresoTotal);
+  var colConcepto, colValor;
+  if (nroCuota === "1ra cuota") [colConcepto, colValor] = ["F", "G"];
+  if (nroCuota === "2da cuota") [colConcepto, colValor] = ["H", "I"];
+  if (nroCuota === "3ra cuota") [colConcepto, colValor] = ["J", "K"];
+
+  var valorCelda = plazosPagosCbba.getRange(colValor + fila).getValue();
+  if (valorCelda == ingresoTotal) {
+    plazosPagosCbba.getRange(colConcepto + fila).setBackground("#7cd455");
+    plazosPagosCbba.getRange(colValor + fila).setBackground("#7cd455");
+    dejarObservaciones(fila);
   } else {
-    if (concepto.includes("1ra cuota")) {
-      if (valorColumnaPri == ingreso) {
-        // Pintar celdas de verde en el otro sheet
-        plazosPagosCbba.getRange("F" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("G" + fila).setBackground("#7cd455");
-      }
-    }
-    if (concepto.includes("2da cuota")) {
-      if (valorColumnaSeg == ingreso) {
-        // Pintar celdas de verde en el otro sheet
-        plazosPagosCbba.getRange("H" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("I" + fila).setBackground("#7cd455");
-      }
-    }
-    if (concepto.includes("3ra cuota")) {
-      if (valorColumnaTer == ingreso) {
-        // Pintar celdas de verde en el otro sheet
-        plazosPagosCbba.getRange("J" + fila).setBackground("#7cd455");
-        plazosPagosCbba.getRange("K" + fila).setBackground("#7cd455");
-      }
-    }
+    plazosPagosCbba.getRange(colConcepto + fila).setBackground("#ffff00");
+    plazosPagosCbba.getRange(colValor + fila).setBackground("#ffff00");
   }
 }
 
-function dejarObservaciones(fila, plazosPagosCbba) {
-  const celda = plazosPagosCbba.getRange("M" + fila);
-  const textoOriginal = celda.getValue();
-
-  // Buscar "canceló" y última coma
-  const indiceCancelo = textoOriginal.indexOf("canceló");
-  const indiceUltimaComa = textoOriginal.lastIndexOf(",");
-
-  if (indiceCancelo !== -1 && indiceUltimaComa !== -1) {
-    const textoAntesCancelo = textoOriginal.substring(0, indiceCancelo).trim();
-    const textoDespuesUltimaComa = textoOriginal
-      .substring(indiceUltimaComa + 1)
-      .trim();
-    const nuevoTexto = textoAntesCancelo + " " + textoDespuesUltimaComa;
-
-    celda.setValue(nuevoTexto);
-  }
-}
-
-function verificarYActualizarM(fila, plazosPagosCbba, nroCuota) {
+function verificarYActualizarM(fila, nroCuota, ingresoTotal) {
   var columnaM = plazosPagosCbba.getRange("M" + fila);
   var valorColumnaM = columnaM.getValue().trim();
+  var cuotaValue = obtenerValorCuota(nroCuota, fila);
+  var diferencia = cuotaValue - ingresoTotal;
+  var textoActualizado;
 
-  if (nroCuota == "1ra cuota") {
-    if (valorColumnaM === "") {
-      var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-      var diferencia = cuotaValue - ingresoPrimero;
-      columnaM.setValue(
-        "canceló Bs." + ingresoPrimero + ", faltan Bs." + diferencia + ","
-      );
-      columnaM.setBackground("#ffff00");
+  if (valorColumnaM === "") {
+    textoActualizado = `canceló Bs.${ingresoTotal}, faltan Bs.${diferencia},`;
+  } else {
+    var partes = separarTexto(valorColumnaM);
+    if (partes[0] == "" && partes[1] == "" && partes[2] == "") {
+      textoActualizado = `canceló Bs.${ingresoTotal}, faltan Bs.${diferencia},${partes[3]}`;
     } else {
-      // Separar el texto en partes
-      var partes = separarTexto(valorColumnaM);
-
-      var parte1 = partes[0]; // "El tesista canceló Bs."
-      var ingresoPasado = parseFloat(partes[1]); // 1500
-      var parte3 = partes[2]; // ", faltan Bs."
-      var parte4 = partes[3]; // ","
-
-      var nuevaDiferencia =
-        obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
-      // Reconstruir el texto actualizado
-      var textoActualizado =
-        parte1 + ingresoPrimero + parte3 + nuevaDiferencia + parte4;
-      // Borrar contenido de la celda antes de actualizar
-      columnaM.clearContent();
-      // Actualizar la columna M con el texto actualizado
-      columnaM.setValue(textoActualizado);
+      textoActualizado = `${partes[0]} ${ingresoTotal}${partes[2]}${diferencia}${partes[3]}`;
     }
   }
-  if (nroCuota == "2da cuota") {
-    if (valorColumnaM === "") {
-      var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-      var diferencia = cuotaValue - ingresoSegundo;
-      columnaM.setValue(
-        "canceló Bs." + ingresoSegundo + ", faltan Bs." + diferencia + ","
-      );
-      columnaM.setBackground("#ffff00");
-    } else {
-      if (
-        valorColumnaM.includes("canceló") &&
-        valorColumnaM.includes("faltan")
-      ) {
-        // Separar el texto en partes
-        var partes = separarTexto(valorColumnaM);
 
-        var parte1 = partes[0]; // "El tesista canceló Bs."
-        var ingresoPasado = parseFloat(partes[1]); // 1500
-        var parte3 = partes[2]; // ", faltan Bs."
-        var parte4 = partes[3]; // ","
-
-        var nuevaDiferencia =
-          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoPrimero;
-        // Reconstruir el texto actualizado
-        var textoActualizado =
-          parte1 + ingresoSegundo + parte3 + nuevaDiferencia + parte4;
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto actualizado
-        columnaM.setValue(textoActualizado);
-      } else {
-        // Obtener el texto existente en la columna M
-        var textoExistente = valorColumnaM;
-
-        // Generar el nuevo texto
-        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-        var diferencia = cuotaValue - ingresoSegundo;
-        var nuevoTexto =
-          "canceló Bs." + ingresoSegundo + ", faltan Bs." + diferencia + ",";
-
-        // Concatenar el texto existente al final del nuevo texto
-        var textoFinal = nuevoTexto + " " + textoExistente;
-
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto final
-        columnaM.setValue(textoFinal);
-      }
-    }
-  }
-  if (nroCuota == "3ra cuota") {
-    if (valorColumnaM === "") {
-      var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-      var diferencia = cuotaValue - ingresoTercero;
-      columnaM.setValue(
-        "canceló Bs." + ingresoTercero + ", faltan Bs." + diferencia + ","
-      );
-      columnaM.setBackground("#ffff00");
-    } else {
-      if (
-        valorColumnaM.includes("canceló") &&
-        valorColumnaM.includes("faltan")
-      ) {
-        // Separar el texto en partes
-        var partes = separarTexto(valorColumnaM);
-
-        var parte1 = partes[0]; // "El tesista canceló Bs."
-        var ingresoPasado = parseFloat(partes[1]); // 1500
-        var parte3 = partes[2]; // ", faltan Bs."
-        var parte4 = partes[3]; // ","
-
-        var nuevaDiferencia =
-          obtenerValorCuota(nroCuota, fila, plazosPagosCbba) - ingresoTercero;
-        // Reconstruir el texto actualizado
-        var textoActualizado =
-          parte1 + ingresoTercero + parte3 + nuevaDiferencia + parte4;
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto actualizado
-        columnaM.setValue(textoActualizado);
-      } else {
-        // Obtener el texto existente en la columna M
-        var textoExistente = valorColumnaM;
-
-        // Generar el nuevo texto
-        var cuotaValue = obtenerValorCuota(nroCuota, fila, plazosPagosCbba);
-        var diferencia = cuotaValue - ingresoPrimero;
-        var nuevoTexto =
-          "canceló Bs." + ingresoPrimero + ", faltan Bs." + diferencia + ",";
-
-        // Concatenar el texto existente al final del nuevo texto
-        var textoFinal = nuevoTexto + " " + textoExistente;
-
-        // Borrar contenido de la celda antes de actualizar
-        columnaM.clearContent();
-        // Actualizar la columna M con el texto final
-        columnaM.setValue(textoFinal);
-      }
-    }
-  }
+  columnaM.clearContent();
+  columnaM.setValue(textoActualizado);
+  columnaM.setBackground("#ffff00");
 }
 
-function obtenerValorCuota(nroCuota, fila, plazosPagosCbba) {
+function obtenerValorCuota(nroCuota, fila) {
   switch (nroCuota) {
     case "1ra cuota":
       return plazosPagosCbba.getRange("G" + fila).getValue();
@@ -482,18 +348,32 @@ function obtenerValorCuota(nroCuota, fila, plazosPagosCbba) {
     case "3ra cuota":
       return plazosPagosCbba.getRange("K" + fila).getValue();
     default:
-      return 0; // Valor por defecto o manejo de error
+      return 0;
+  }
+}
+
+function dejarObservaciones(fila) {
+  var celda = plazosPagosCbba.getRange("M" + fila);
+  var textoOriginal = celda.getValue();
+  var indiceCancelo = textoOriginal.indexOf("canceló");
+  var indiceUltimaComa = textoOriginal.lastIndexOf(",");
+
+  if (indiceCancelo !== -1 && indiceUltimaComa !== -1) {
+    var textoAntesCancelo = textoOriginal.substring(0, indiceCancelo).trim();
+    var textoDespuesUltimaComa = textoOriginal
+      .substring(indiceUltimaComa + 1)
+      .trim();
+    var nuevoTexto = textoAntesCancelo + " " + textoDespuesUltimaComa;
+    celda.setValue(nuevoTexto);
   }
 }
 
 function separarTexto(texto) {
-  // Encontrar las posiciones de los puntos y comas
   var punto1 = texto.indexOf(".");
   var punto2 = texto.indexOf(".", punto1 + 1);
   var coma1 = texto.indexOf(",");
   var coma2 = texto.indexOf(",", coma1 + 1);
 
-  // Extraer partes del texto
   var parte1 = texto.substring(0, punto1 + 1);
   var parte2 = texto.substring(punto1 + 1, coma1);
   var parte3 = texto.substring(coma1, punto2 + 1);
@@ -502,12 +382,11 @@ function separarTexto(texto) {
   return [parte1, parte2, parte3, parte4];
 }
 
-// Ejemplo de uso
 function test() {
-  actualizarDatos(803, "SPACBBOL 162");
+  actualizarDatos(804, "SPACBBOL 205");
 }
 
 function iter() {
-  var resultado = Iteracion("SPACBBOL 196");
+  var resultado = obtenerCliente("SPACBBOL 196");
   Logger.log(resultado);
 }
