@@ -1,8 +1,9 @@
-var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024");
+var libroCbba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("2024"); // Reemplaza "2024" con el nombre correcto de tu hoja
 var plazosPagosCbba = SpreadsheetApp.openByUrl(
   "https://docs.google.com/spreadsheets/d/1XcqOdbIIb5FZQiAn8hOA6u7y1UPEaxsBY-PluzfgJYs/edit?usp=sharing"
 ).getSheetByName("TESISTAS");
 
+// Listas de abreviaturas por categorías
 var categoriaA = [
   "plásticas",
   "plasticas",
@@ -104,42 +105,75 @@ var categoriaB = [
   "matemática",
   "matematica",
 ];
-
 var ingresos = {
   primero: 0,
   segundo: 0,
   tercero: 0,
 };
+function onEdit(e) {
+  try {
+    const range = e.range;
+    if (!libroCbba || range.getSheet().getName() !== "2024") {
+      return;
+    }
 
-function actualizarDatos(filaEditada, codigo) {
-  if (filaEditada < 2) return; // No hacer nada si se edita en la cabecera
-  var numeroCodigo = parseInt(codigo.split(" ")[1]);
-  if (numeroCodigo < 150) return;
+    const numRows = range.getNumRows();
+    const numCols = range.getNumColumns();
 
-  var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
-  var concepto = libroCbba.getRange("E" + filaEditada).getValue();
-  var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
-  var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
-  var nombreContrato = obtenerNombreContrato(concepto);
+    for (let row = 0; row < numRows; row++) {
+      const filaEditada = range.getRow() + row;
 
-  var cliente = obtenerCliente(codigo);
-  actualizarIngresos(cliente);
+      if (filaEditada < 2) {
+        // No hacer nada si se edita en la cabecera
+        continue;
+      }
 
-  var filaPlazos = buscarFilaPlazos(codigo);
-  if (filaPlazos > 0) {
-    actualizarPlazos(
-      filaPlazos,
-      nombreContrato,
-      nombreCliente,
-      concepto,
-      tipoCuota
-    );
-  }
+      // Obtener los valores de las columnas B, D, E y G de la fila actual
+      const codigo = libroCbba.getRange("B" + filaEditada).getValue();
+      var nombreCliente = libroCbba.getRange("D" + filaEditada).getValue();
+      var concepto = libroCbba.getRange("E" + filaEditada).getValue();
+      var ingreso = libroCbba.getRange("G" + filaEditada).getValue();
+      var tipoCuota = determinarCuotas(concepto, categoriaA, categoriaB);
+      var nombreContrato = obtenerNombreContrato(concepto);
 
-  if (verificarSubCuota(concepto)) {
-    actualizarCuotasSubCuota(filaPlazos + 3, concepto);
-  } else {
-    actualizarCuotas(filaPlazos + 3, ingreso, concepto);
+      // Verificar si las columnas B, D, E y G están llenas
+      if (!codigo || !nombreCliente || !concepto || !ingreso) {
+        continue; // Si alguna está vacía, saltar a la siguiente iteración
+      }
+
+      for (let col = 0; col < numCols; col++) {
+        const cell = range.getCell(row + 1, col + 1);
+
+        if (
+          cell.getColumn() === 2 ||
+          cell.getColumn() === 4 ||
+          cell.getColumn() === 5 ||
+          cell.getColumn() === 7
+        ) {
+          // Si se edita la columna B (2), D (4), E (5), verificar y ejecutar el código
+          var cliente = obtenerCliente(codigo);
+          actualizarIngresos(cliente);
+
+          var filaPlazos = buscarFilaPlazos(codigo);
+          if (filaPlazos > 0) {
+            actualizarPlazos(
+              filaPlazos,
+              nombreContrato,
+              nombreCliente,
+              concepto,
+              tipoCuota
+            );
+          }
+        }
+        if (verificarSubCuota(concepto)) {
+          actualizarCuotasSubCuota(filaPlazos + 3, concepto);
+        } else {
+          actualizarCuotas(filaPlazos + 3, ingreso, concepto);
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log(e.toString());
   }
 }
 
@@ -380,13 +414,4 @@ function separarTexto(texto) {
   var parte4 = texto.substring(coma2);
 
   return [parte1, parte2, parte3, parte4];
-}
-
-function test() {
-  actualizarDatos(804, "SPACBBOL 205");
-}
-
-function iter() {
-  var resultado = obtenerCliente("SPACBBOL 196");
-  Logger.log(resultado);
 }
